@@ -4,13 +4,15 @@ package com.example.sequence_alignment.service
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Service
 import java.util.*
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 @Service
 class WordAnalyser(
     private val levenshteinAlgorithm: LevenshteinAlgorithm
 ) {
     // A tree to store all words from the dictionary
-    private val dictionary = TreeSet<String>()
+    private val dictionary = HashSet<String>()
 
     // Load the dictionary from the file into the tree
     init {
@@ -35,40 +37,57 @@ class WordAnalyser(
         // Get 5 suggestions for each word, if there are any, and save them in a hash map
         val result = HashMap<String, List<String>>()
 
+        // Make the suggestions for each word (note the use of Threads)
+        val threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+        val threads = ArrayList<Future<*>>(words.size)
         for (word in words) {
-            // If the word is in the dictionary, don't suggest anything
-            if (dictionary.contains(word)) {
-                continue
-            }
-
-            // Cache the distance between the word and the dictionary word to avoid calculating it twice
-            val distances = HashMap<String, Int>(dictionary.size, 1f)
-
-            // Use a tree to store the top 5 suggestions, the tree is sorted by the distance
-            val suggestions = TreeSet<String>(compareBy { distances[it] })
-
-            for (dictWord in dictionary) {
-                // Compute the distance and save it in the cache
-                val distance = levenshteinAlgorithm.getDistance(word, dictWord)
-                distances[dictWord] = distance
-
-                // If the tree have less than 5 suggestions, add the current word
-                if (suggestions.size < 5) {
-                    suggestions.add(dictWord)
+            threads.add(
+                threadPool.submit {
+                    val suggestions = suggestWord(word)
+                    
+                    if (suggestions.isNotEmpty()) {
+                        result[word] = suggestions
+                    }
                 }
-                // If the current word has a smaller distance than the largest distance in the tree set,
-                // remove the largest distance and add the current word
-                else if (distance < distances[suggestions.last()]!!) {
-                    suggestions.pollLast()
-                    suggestions.add(dictWord)
-                }
-            }
-
-            // Save the suggestions in the result and continue to the next word
-            result[word] = suggestions.toList()
+            )
         }
+        threads.forEach { it.get() }
+        threadPool.shutdown()
 
         // Return the result
         return result
+    }
+
+    fun suggestWord(word: String): List<String> {
+        // If the word is in the dictionary, return an empty list
+        if (dictionary.contains(word)) {
+            return emptyList()
+        }
+
+        // Cache the distance between the word and the dictionary word to avoid calculating it twice
+        val distances = HashMap<String, Int>(dictionary.size, 1f)
+
+        // Use a tree to store the top 5 suggestions, the tree is sorted by the distance
+        val suggestions = TreeSet<String>(compareBy { distances[it] })
+
+        for (dictWord in dictionary) {
+            // Compute the distance and save it in the cache
+            val distance = levenshteinAlgorithm.getDistance(word, dictWord)
+            distances[dictWord] = distance
+
+            // If the tree have less than 5 suggestions, add the current word
+            if (suggestions.size < 5) {
+                suggestions.add(dictWord)
+            }
+            // If the current word has a smaller distance than the largest distance in the tree set,
+            // remove the largest distance and add the current word
+            else if (distance < distances[suggestions.last()]!!) {
+                suggestions.pollLast()
+                suggestions.add(dictWord)
+            }
+        }
+
+        // Return the result
+        return suggestions.toList()
     }
 }
