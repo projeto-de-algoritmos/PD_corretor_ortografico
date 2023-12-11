@@ -26,9 +26,9 @@ class LevenshteinAlgorithm {
                 // 2. Gap in the second word (i.e. insert a character into the second word)
                 // 3. Mismatch (i.e. replace a character in the first word with a character from the second word)
                 matrix[i][j] = minOf(
-                    matrix[i - 1][j] + 2,
-                    matrix[i][j - 1] + 2,
-                    matrix[i - 1][j - 1] + if (word1[i - 1] == word2[j - 1]) 0 else 3
+                    matrix[i - 1][j] + 3,
+                    matrix[i][j - 1] + 5,
+                    matrix[i - 1][j - 1] + if (word1[i - 1] == word2[j - 1]) 0 else 2
                 )
             }
         }

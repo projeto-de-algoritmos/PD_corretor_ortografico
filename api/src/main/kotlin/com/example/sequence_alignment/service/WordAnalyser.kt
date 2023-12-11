@@ -4,8 +4,7 @@ package com.example.sequence_alignment.service
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Service
 import java.util.*
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
+import java.util.stream.Collectors
 
 @Service
 class WordAnalyser(
@@ -17,7 +16,7 @@ class WordAnalyser(
     // Load the dictionary from the file into the tree
     init {
         val file = ClassPathResource("dictionary.txt").file
-        file.forEachLine { dictionary.add(it.lowercase()) }
+        file.forEachLine { dictionary.add(it) }
     }
 
     fun parseText(text: String): Map<String, List<String>> {
@@ -34,34 +33,20 @@ class WordAnalyser(
         // Save all words in a tree to remove duplicates
         val words = TreeSet(preprocessedWords)
 
-        // Get 5 suggestions for each word, if there are any, and save them in a hash map
-        val result = HashMap<String, List<String>>()
-
-        // Make the suggestions for each word (note the use of Threads)
-        val threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
-        val threads = ArrayList<Future<*>>(words.size)
-        for (word in words) {
-            threads.add(
-                threadPool.submit {
-                    val suggestions = suggestWord(word)
-                    
-                    if (suggestions.isNotEmpty()) {
-                        result[word] = suggestions
-                    }
-                }
-            )
-        }
-        threads.forEach { it.get() }
-        threadPool.shutdown()
+        // Get 5 suggestions for each word, if there are any, and save them in a hash map (note the use of Threads)
+        val result: MutableMap<String, List<String>> = words.parallelStream()
+            .map { word -> word to suggestWord(word) }
+            .filter { (_, suggestions) -> suggestions != null }
+            .collect(Collectors.toMap({ it.first }, { it.second }))
 
         // Return the result
         return result
     }
 
-    fun suggestWord(word: String): List<String> {
+    fun suggestWord(word: String): List<String>? {
         // If the word is in the dictionary, return an empty list
         if (dictionary.contains(word)) {
-            return emptyList()
+            return null
         }
 
         // Cache the distance between the word and the dictionary word to avoid calculating it twice
