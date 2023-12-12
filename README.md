@@ -39,4 +39,4 @@ Abra o navegador e acesse o endereço http://localhost:5173/
 
 ## Vídeo de apresentação
 
-[Apresentação](https://youtu.be/F5HLoi3aXVk)
+[Apresentação](./assets/apresentação.mp4)
