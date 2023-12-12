@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  web:
+    build: ./client
+    ports:
+      - "5173:80"
+
+  api:
+    build: ./api
+    ports:
+      - "8080:8080"

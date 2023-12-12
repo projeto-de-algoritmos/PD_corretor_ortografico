@@ -15,7 +15,7 @@ class WordAnalyser(
 
     // Load the dictionary from the file into the tree
     init {
-        val file = ClassPathResource("dictionary.txt").file
+        val file = ClassPathResource("dictionary.txt").inputStream.bufferedReader()
         file.forEachLine { dictionary.add(it) }
     }
 
