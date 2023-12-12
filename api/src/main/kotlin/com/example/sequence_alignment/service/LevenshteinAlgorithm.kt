@@ -10,12 +10,12 @@ class LevenshteinAlgorithm {
 
         // Fill the first row with the cost of a gap
         for (i in 0..word1.length) {
-            matrix[i][0] = i * 2
+            matrix[i][0] = i * 3
         }
 
         // Fill the first column with the cost of a gap
         for (j in 0..word2.length) {
-            matrix[0][j] = j * 2
+            matrix[0][j] = j * 5
         }
 
         // Execute the algorithm, filling the matrix
